@@ -6,7 +6,7 @@ RUN go mod download
 COPY . .
 RUN go build -o /sophos-telemetry -buildvcs=false
 
-FROM gcr.io/distroless/base-debian10
+FROM debian:bookworm-slim
 WORKDIR /
 COPY --from=build /sophos-telemetry /sophos-telemetry
 EXPOSE 8080
