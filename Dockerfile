@@ -10,5 +10,4 @@ FROM debian:bookworm-slim
 WORKDIR /
 COPY --from=build /sophos-telemetry /sophos-telemetry
 EXPOSE 8080
-USER nonroot:nonroot
 ENTRYPOINT ["/sophos-telemetry"]
