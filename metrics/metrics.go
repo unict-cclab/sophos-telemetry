@@ -244,6 +244,108 @@ func GetAppsMemoryUsage(appGroupName, rangeWidth string) (model.Vector, promethe
 	return vector, warnings, err
 }
 
+func GetAppNetworkBandwidthUsage(appGroupName, appName, rangeWidth string) (model.Vector, prometheus.Warnings, error) {
+	prometheusClient, err := newPrometheusClient(prometheusAddress)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to create metrics client: %v", err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	podNamePrefix := appGroupName + "-" + appName
+	result, warnings, err := prometheusClient.Query(ctx, `
+		avg by(interface) (rate(container_network_transmit_bytes_total{pod=~"`+podNamePrefix+`-.*",interface="eth0"}[`+rangeWidth+`]) + rate(container_network_receive_bytes_total{pod=~"`+podNamePrefix+`-.*",interface="eth0"}[`+rangeWidth+`])) / (1024 * 1024)
+	`, time.Now())
+
+	if err != nil {
+		return nil, nil, fmt.Errorf("error during query execution: %v", err)
+	}
+
+	vector, ok := result.(model.Vector)
+
+	if !ok {
+		return nil, nil, fmt.Errorf("query result is not a vector: %v", err)
+	}
+
+	return vector, warnings, err
+}
+
+func GetAppsNetworkBandwidthUsage(appGroupName, rangeWidth string) (model.Vector, prometheus.Warnings, error) {
+	prometheusClient, err := newPrometheusClient(prometheusAddress)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to create metrics client: %v", err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	result, warnings, err := prometheusClient.Query(ctx, `
+		avg by(interface) (rate(container_network_transmit_bytes_total{pod=~"`+appGroupName+`-.*",interface="eth0"}[`+rangeWidth+`]) + rate(container_network_receive_bytes_total{pod=~"`+appGroupName+`-.*",interface="eth0"}[`+rangeWidth+`])) / (1024 * 1024)
+	`, time.Now())
+
+	if err != nil {
+		return nil, nil, fmt.Errorf("error during query execution: %v", err)
+	}
+
+	vector, ok := result.(model.Vector)
+
+	if !ok {
+		return nil, nil, fmt.Errorf("query result is not a vector: %v", err)
+	}
+
+	return vector, warnings, err
+}
+
+func GetAppDiskBandwidthUsage(appGroupName, appName, rangeWidth string) (model.Vector, prometheus.Warnings, error) {
+	prometheusClient, err := newPrometheusClient(prometheusAddress)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to create metrics client: %v", err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	containerName := appGroupName + "-" + appName
+	result, warnings, err := prometheusClient.Query(ctx, `
+		avg by(container) (rate(container_fs_writes_bytes_total{container="`+containerName+`"}[`+rangeWidth+`]) + rate(container_fs_reads_bytes_total{container="`+containerName+`"}[`+rangeWidth+`])) / (1024 * 1024)
+	`, time.Now())
+
+	if err != nil {
+		return nil, nil, fmt.Errorf("error during query execution: %v", err)
+	}
+
+	vector, ok := result.(model.Vector)
+
+	if !ok {
+		return nil, nil, fmt.Errorf("query result is not a vector: %v", err)
+	}
+
+	return vector, warnings, err
+}
+
+func GetAppsDiskBandwidthUsage(appGroupName, rangeWidth string) (model.Vector, prometheus.Warnings, error) {
+	prometheusClient, err := newPrometheusClient(prometheusAddress)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to create metrics client: %v", err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	result, warnings, err := prometheusClient.Query(ctx, `
+		avg by(container) (rate(container_fs_writes_bytes_total{container=~"`+appGroupName+`-.*"}[`+rangeWidth+`]) + rate(container_fs_reads_bytes_total{container=~"`+appGroupName+`-.*"}[`+rangeWidth+`])) / (1024 * 1024)
+	`, time.Now())
+
+	if err != nil {
+		return nil, nil, fmt.Errorf("error during query execution: %v", err)
+	}
+
+	vector, ok := result.(model.Vector)
+
+	if !ok {
+		return nil, nil, fmt.Errorf("query result is not a vector: %v", err)
+	}
+
+	return vector, warnings, err
+}
+
 func GetNodeLatencies(nodeName, rangeWidth string) (model.Vector, prometheus.Warnings, error) {
 	prometheusClient, err := newPrometheusClient(prometheusAddress)
 	if err != nil {
@@ -379,6 +481,106 @@ func GetNodesCpuUsage(rangeWidth string) (model.Vector, prometheus.Warnings, err
 	defer cancel()
 	result, warnings, err := prometheusClient.Query(ctx, `
 		sum by (node_name) (rate(node_cpu_seconds_total{mode!="idle"}[`+rangeWidth+`]))
+	`, time.Now())
+
+	if err != nil {
+		return nil, nil, fmt.Errorf("error during query execution: %v", err)
+	}
+
+	vector, ok := result.(model.Vector)
+
+	if !ok {
+		return nil, nil, fmt.Errorf("query result is not a vector: %v", err)
+	}
+
+	return vector, warnings, err
+}
+
+func GetNodeNetworkBandwidthUsage(nodeName, rangeWidth string) (model.Vector, prometheus.Warnings, error) {
+	prometheusClient, err := newPrometheusClient(prometheusAddress)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to create metrics client: %v", err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	result, warnings, err := prometheusClient.Query(ctx, `
+		sum by (node_name) (rate(node_network_transmit_bytes_total{node_name="`+nodeName+`"}[`+rangeWidth+`]) + rate(node_network_receive_bytes_total{node_name="`+nodeName+`"}[`+rangeWidth+`])) / (1024 * 1024)
+	`, time.Now())
+
+	if err != nil {
+		return nil, nil, fmt.Errorf("error during query execution: %v", err)
+	}
+
+	vector, ok := result.(model.Vector)
+
+	if !ok {
+		return nil, nil, fmt.Errorf("query result is not a vector: %v", err)
+	}
+
+	return vector, warnings, err
+}
+
+func GetNodesNetworkBandwidthUsage(rangeWidth string) (model.Vector, prometheus.Warnings, error) {
+	prometheusClient, err := newPrometheusClient(prometheusAddress)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to create metrics client: %v", err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	result, warnings, err := prometheusClient.Query(ctx, `
+		sum by (node_name) (rate(node_network_transmit_bytes_total[`+rangeWidth+`]) + rate(node_network_receive_bytes_total[`+rangeWidth+`])) / (1024 * 1024)
+	`, time.Now())
+
+	if err != nil {
+		return nil, nil, fmt.Errorf("error during query execution: %v", err)
+	}
+
+	vector, ok := result.(model.Vector)
+
+	if !ok {
+		return nil, nil, fmt.Errorf("query result is not a vector: %v", err)
+	}
+
+	return vector, warnings, err
+}
+
+func GetNodeDiskBandwidthUsage(nodeName, rangeWidth string) (model.Vector, prometheus.Warnings, error) {
+	prometheusClient, err := newPrometheusClient(prometheusAddress)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to create metrics client: %v", err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	result, warnings, err := prometheusClient.Query(ctx, `
+		sum by (node_name) (rate(node_disk_written_bytes_total{node_name="`+nodeName+`"}[`+rangeWidth+`]) + rate(node_disk_read_bytes_total{node_name="`+nodeName+`"}[`+rangeWidth+`])) / (1024 * 1024)
+	`, time.Now())
+
+	if err != nil {
+		return nil, nil, fmt.Errorf("error during query execution: %v", err)
+	}
+
+	vector, ok := result.(model.Vector)
+
+	if !ok {
+		return nil, nil, fmt.Errorf("query result is not a vector: %v", err)
+	}
+
+	return vector, warnings, err
+}
+
+func GetNodesDiskBandwidthUsage(rangeWidth string) (model.Vector, prometheus.Warnings, error) {
+	prometheusClient, err := newPrometheusClient(prometheusAddress)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to create metrics client: %v", err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	result, warnings, err := prometheusClient.Query(ctx, `
+		sum by (node_name) (rate(node_disk_written_bytes_total[`+rangeWidth+`]) + rate(node_disk_read_bytes_total[`+rangeWidth+`])) / (1024 * 1024)
 	`, time.Now())
 
 	if err != nil {

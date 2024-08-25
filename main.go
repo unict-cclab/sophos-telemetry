@@ -195,6 +195,82 @@ func getAppsMemoryUsage(c *gin.Context) {
 	}
 }
 
+func getAppsNetworkBandwidthUsage(c *gin.Context) {
+	appGroupName := c.Query("app-group")
+	appName := c.Query("app")
+	rangeWidth := c.Query("range-width")
+
+	if rangeWidth == "" {
+		rangeWidth = "5m"
+	}
+
+	if appName != "" {
+		results, _, err := metrics.GetAppNetworkBandwidthUsage(appGroupName, appName, rangeWidth)
+
+		//fmt.Println(warnings)
+		if err != nil {
+			c.IndentedJSON(http.StatusInternalServerError, err)
+		} else {
+			if len(results) < 1 {
+				c.IndentedJSON(http.StatusNotFound, fmt.Errorf("network bandwidth usage metrics for app %s not found", appName))
+			} else {
+				c.IndentedJSON(http.StatusOK, float64(results[0].Value))
+			}
+		}
+	} else {
+		results, _, err := metrics.GetAppsNetworkBandwidthUsage(appGroupName, rangeWidth)
+
+		//fmt.Println(warnings)
+		if err != nil {
+			c.IndentedJSON(http.StatusInternalServerError, err)
+		} else {
+			networkBandwidthValues := map[string]float64{}
+			for _, result := range results {
+				networkBandwidthValues[string(result.Metric["interface"])] = float64(result.Value)
+			}
+			c.IndentedJSON(http.StatusOK, networkBandwidthValues)
+		}
+	}
+}
+
+func getAppsDiskBandwidthUsage(c *gin.Context) {
+	appGroupName := c.Query("app-group")
+	appName := c.Query("app")
+	rangeWidth := c.Query("range-width")
+
+	if rangeWidth == "" {
+		rangeWidth = "5m"
+	}
+
+	if appName != "" {
+		results, _, err := metrics.GetAppDiskBandwidthUsage(appGroupName, appName, rangeWidth)
+
+		//fmt.Println(warnings)
+		if err != nil {
+			c.IndentedJSON(http.StatusInternalServerError, err)
+		} else {
+			if len(results) < 1 {
+				c.IndentedJSON(http.StatusNotFound, fmt.Errorf("disk bandwidth usage metrics for app %s not found", appName))
+			} else {
+				c.IndentedJSON(http.StatusOK, float64(results[0].Value))
+			}
+		}
+	} else {
+		results, _, err := metrics.GetAppsDiskBandwidthUsage(appGroupName, rangeWidth)
+
+		//fmt.Println(warnings)
+		if err != nil {
+			c.IndentedJSON(http.StatusInternalServerError, err)
+		} else {
+			diskBandwidthValues := map[string]float64{}
+			for _, result := range results {
+				diskBandwidthValues[string(result.Metric["container"])] = float64(result.Value)
+			}
+			c.IndentedJSON(http.StatusOK, diskBandwidthValues)
+		}
+	}
+}
+
 func getNodesLatencies(c *gin.Context) {
 	nodeName := c.Query("node")
 
@@ -313,15 +389,95 @@ func getNodesCpuUsage(c *gin.Context) {
 	}
 }
 
+func getNodesNetworkBandwidthUsage(c *gin.Context) {
+	nodeName := c.Query("node")
+
+	rangeWidth := c.Query("range-width")
+
+	if rangeWidth == "" {
+		rangeWidth = "5m"
+	}
+
+	if nodeName != "" {
+		results, _, err := metrics.GetNodeNetworkBandwidthUsage(nodeName, rangeWidth)
+
+		//fmt.Println(warnings)
+		if err != nil {
+			c.IndentedJSON(http.StatusInternalServerError, err)
+		} else {
+			if len(results) < 1 {
+				c.IndentedJSON(http.StatusNotFound, fmt.Errorf("network bandwidth usage metrics for node %s not found", nodeName))
+			} else {
+				c.IndentedJSON(http.StatusOK, float64(results[0].Value))
+			}
+		}
+	} else {
+		results, _, err := metrics.GetNodesNetworkBandwidthUsage(rangeWidth)
+
+		//fmt.Println(warnings)
+		if err != nil {
+			c.IndentedJSON(http.StatusInternalServerError, err)
+		} else {
+			networkBandwidthValues := map[string]float64{}
+			for _, result := range results {
+				networkBandwidthValues[string(result.Metric["node_name"])] = float64(result.Value)
+			}
+			c.IndentedJSON(http.StatusOK, networkBandwidthValues)
+		}
+	}
+}
+
+func getNodesDiskBandwidthUsage(c *gin.Context) {
+	nodeName := c.Query("node")
+
+	rangeWidth := c.Query("range-width")
+
+	if rangeWidth == "" {
+		rangeWidth = "5m"
+	}
+
+	if nodeName != "" {
+		results, _, err := metrics.GetNodeDiskBandwidthUsage(nodeName, rangeWidth)
+
+		//fmt.Println(warnings)
+		if err != nil {
+			c.IndentedJSON(http.StatusInternalServerError, err)
+		} else {
+			if len(results) < 1 {
+				c.IndentedJSON(http.StatusNotFound, fmt.Errorf("disk bandwidth usage metrics for node %s not found", nodeName))
+			} else {
+				c.IndentedJSON(http.StatusOK, float64(results[0].Value))
+			}
+		}
+	} else {
+		results, _, err := metrics.GetNodesDiskBandwidthUsage(rangeWidth)
+
+		//fmt.Println(warnings)
+		if err != nil {
+			c.IndentedJSON(http.StatusInternalServerError, err)
+		} else {
+			diskBandwidthValues := map[string]float64{}
+			for _, result := range results {
+				diskBandwidthValues[string(result.Metric["node_name"])] = float64(result.Value)
+			}
+			c.IndentedJSON(http.StatusOK, diskBandwidthValues)
+		}
+	}
+}
+
 func main() {
 	router := gin.Default()
 	router.GET("/metrics/apps/rps", getAppsRequestsPerSecond)
 	router.GET("/metrics/apps/traffic", getAppsTraffic)
 	router.GET("/metrics/apps/cpu-usage", getAppsCpuUsage)
 	router.GET("/metrics/apps/memory-usage", getAppsMemoryUsage)
+	router.GET("/metrics/apps/network-usage", getAppsNetworkBandwidthUsage)
+	router.GET("/metrics/apps/disk-usage", getAppsDiskBandwidthUsage)
 	router.GET("/metrics/nodes/latencies", getNodesLatencies)
 	router.GET("/metrics/nodes/memory-usage", getNodesMemoryUsage)
 	router.GET("/metrics/nodes/cpu-usage", getNodesCpuUsage)
+	router.GET("/metrics/nodes/network-usage", getNodesNetworkBandwidthUsage)
+	router.GET("/metrics/nodes/disk-usage", getNodesDiskBandwidthUsage)
 
 	err := router.Run("0.0.0.0:8080")
 	if err != nil {
