@@ -204,31 +204,16 @@ func getAppsNetworkBandwidthUsage(c *gin.Context) {
 		rangeWidth = "5m"
 	}
 
-	if appName != "" {
-		results, _, err := metrics.GetAppNetworkBandwidthUsage(appGroupName, appName, rangeWidth)
+	results, _, err := metrics.GetAppNetworkBandwidthUsage(appGroupName, appName, rangeWidth)
 
-		//fmt.Println(warnings)
-		if err != nil {
-			c.IndentedJSON(http.StatusInternalServerError, err)
-		} else {
-			if len(results) < 1 {
-				c.IndentedJSON(http.StatusNotFound, fmt.Errorf("network bandwidth usage metrics for app %s not found", appName))
-			} else {
-				c.IndentedJSON(http.StatusOK, float64(results[0].Value))
-			}
-		}
+	//fmt.Println(warnings)
+	if err != nil {
+		c.IndentedJSON(http.StatusInternalServerError, err)
 	} else {
-		results, _, err := metrics.GetAppsNetworkBandwidthUsage(appGroupName, rangeWidth)
-
-		//fmt.Println(warnings)
-		if err != nil {
-			c.IndentedJSON(http.StatusInternalServerError, err)
+		if len(results) < 1 {
+			c.IndentedJSON(http.StatusNotFound, fmt.Errorf("network bandwidth usage metrics for app %s not found", appName))
 		} else {
-			networkBandwidthValues := map[string]float64{}
-			for _, result := range results {
-				networkBandwidthValues[string(result.Metric["interface"])] = float64(result.Value)
-			}
-			c.IndentedJSON(http.StatusOK, networkBandwidthValues)
+			c.IndentedJSON(http.StatusOK, float64(results[0].Value))
 		}
 	}
 }
